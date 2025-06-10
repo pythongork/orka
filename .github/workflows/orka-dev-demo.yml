@@ -9,19 +9,27 @@ jobs:
     steps:
       - name: Install Xcode Command Line Tools
         run: |
-          xcode-select --install || echo "Xcode tools already installed"
+          echo "admin" | sudo -S xcode-select --install || echo "Xcode tools already installed"
 
       - name: Install Docker Desktop
         run: |
-          brew install --cask docker
-          echo "✅ Docker installed"
+          echo "admin" | sudo -S brew install --cask docker
+          open -a Docker
+          echo "✅ Docker installed and launched"
 
       - name: Install Visual Studio Code
         run: |
-          brew install --cask visual-studio-code
-          echo "✅ VS Code installed"
+          echo "admin" | sudo -S brew install --cask visual-studio-code
+          open -a "Visual Studio Code"
+          echo "✅ VS Code installed and launched"
 
-      - name: Open a Webpage in Safari
+      - name: Install Google Chrome
+        run: |
+          echo "admin" | sudo -S brew install --cask google-chrome
+          open -a "Google Chrome"
+          echo "✅ Chrome installed and launched"
+
+      - name: Open Apple.com in Safari
         run: |
           open -a Safari "https://www.apple.com"
           echo "🌐 Safari launched Apple.com"
@@ -29,8 +37,8 @@ jobs:
       - name: GUI Test – Take Screenshot
         run: |
           mkdir -p ~/orka-screenshots
-          screencapture ~/orka-screenshots/safari.png
-          echo "📸 Screenshot saved to ~/orka-screenshots/safari.png"
+          screencapture ~/orka-screenshots/devtools.png
+          echo "📸 Screenshot saved to ~/orka-screenshots/devtools.png"
 
       - name: Show Screenshot File Info
         run: |
