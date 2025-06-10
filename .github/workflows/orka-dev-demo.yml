@@ -7,32 +7,40 @@ jobs:
   setup-vm:
     runs-on: [self-hosted, orka]
     steps:
-      - name: Install Xcode Command Line Tools
+      - name: Ensure Xcode Command Line Tools Fresh Install
         run: |
-          xcode-select --install || echo "Xcode tools already installed"
+          if xcode-select -p &>/dev/null; then
+            sudo rm -rf /Library/Developer/CommandLineTools
+            echo "🧹 Removed existing Xcode CLT"
+          fi
+          xcode-select --install || echo "Xcode tools prompt initiated"
 
-      - name: Install Docker Desktop
+      - name: Reinstall Docker Desktop
         run: |
+          if [ -d "/Applications/Docker.app" ]; then
+            echo "🧽 Uninstalling existing Docker"
+            rm -rf /Applications/Docker.app
+          fi
           brew install --cask docker
           open -a Docker || echo "ℹ️ Docker launch skipped"
-          echo "✅ Docker installed"
+          echo "✅ Docker installed and launched"
 
-      - name: Check Docker App Installation
+      - name: Reinstall Visual Studio Code
         run: |
-          if [ -e "/Applications/Docker.app" ]; then
-            echo "🚀 Docker Desktop is installed in Applications"
-          else
-            echo "❌ Docker not found"
+          if [ -d "/Applications/Visual Studio Code.app" ]; then
+            echo "🧽 Uninstalling existing VS Code"
+            rm -rf "/Applications/Visual Studio Code.app"
           fi
-
-      - name: Install Visual Studio Code
-        run: |
           brew install --cask visual-studio-code
           open -a "Visual Studio Code"
           echo "✅ VS Code installed and launched"
 
-      - name: Install Google Chrome
+      - name: Reinstall Google Chrome
         run: |
+          if [ -d "/Applications/Google Chrome.app" ]; then
+            echo "🧽 Uninstalling existing Chrome"
+            rm -rf "/Applications/Google Chrome.app"
+          fi
           brew install --cask google-chrome
           open -a "Google Chrome"
           echo "✅ Chrome installed and launched"
