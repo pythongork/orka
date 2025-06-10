@@ -7,5 +7,12 @@ jobs:
   test-on-orka:
     runs-on: [self-hosted, orka]
     steps:
-      - name: Hello Orka
-        run: echo "🎉 Hello from the Orka ephemeral runner!"
+      - name: Update Homebrew
+        run: brew update
+
+      - name: Install htop
+        run: brew install htop
+
+      - name: Run htop version
+        run: htop --version
+
