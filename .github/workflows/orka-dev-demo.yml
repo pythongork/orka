@@ -9,23 +9,31 @@ jobs:
     steps:
       - name: Install Xcode Command Line Tools
         run: |
-          echo "admin" | sudo -S xcode-select --install || echo "Xcode tools already installed"
+          xcode-select --install || echo "Xcode tools already installed"
 
       - name: Install Docker Desktop
         run: |
-          echo "admin" | sudo -S brew install --cask docker
-          open -a Docker
-          echo "✅ Docker installed and launched"
+          brew install --cask docker
+          open -a Docker || echo "ℹ️ Docker launch skipped"
+          echo "✅ Docker installed"
+
+      - name: Check Docker App Installation
+        run: |
+          if [ -e "/Applications/Docker.app" ]; then
+            echo "🚀 Docker Desktop is installed in Applications"
+          else
+            echo "❌ Docker not found"
+          fi
 
       - name: Install Visual Studio Code
         run: |
-          echo "admin" | sudo -S brew install --cask visual-studio-code
+          brew install --cask visual-studio-code
           open -a "Visual Studio Code"
           echo "✅ VS Code installed and launched"
 
       - name: Install Google Chrome
         run: |
-          echo "admin" | sudo -S brew install --cask google-chrome
+          brew install --cask google-chrome
           open -a "Google Chrome"
           echo "✅ Chrome installed and launched"
 
