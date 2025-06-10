@@ -9,6 +9,11 @@ jobs:
     env:
       VM_PASSWORD: admin
     steps:
+      - name: Configure Passwordless Sudo
+        run: |
+          echo "$VM_PASSWORD" | sudo -S sh -c 'echo "$(whoami) ALL=(ALL) NOPASSWD: /bin/rm, /usr/bin/pkill, /usr/sbin/screencapture" > /etc/sudoers.d/orka-user'
+          echo "✅ Passwordless sudo configured for required commands"
+
       - name: Ensure Homebrew is Installed
         run: |
           if ! command -v brew &>/dev/null; then
@@ -22,8 +27,8 @@ jobs:
 
       - name: Clean and Install Docker Desktop
         run: |
-          echo "$VM_PASSWORD" | sudo -S pkill Docker || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Docker.app"
+          sudo -n pkill Docker || true
+          sudo -n rm -rf "/Applications/Docker.app"
           brew uninstall --cask docker || true
           brew install --cask docker
           echo "✅ Docker installed"
@@ -33,8 +38,8 @@ jobs:
 
       - name: Clean and Install Visual Studio Code
         run: |
-          echo "$VM_PASSWORD" | sudo -S pkill "Visual Studio Code" || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Visual Studio Code.app"
+          sudo -n pkill "Visual Studio Code" || true
+          sudo -n rm -rf "/Applications/Visual Studio Code.app"
           brew uninstall --cask visual-studio-code || true
           brew install --cask visual-studio-code
           echo "✅ VS Code installed"
@@ -44,8 +49,8 @@ jobs:
 
       - name: Clean and Install Google Chrome
         run: |
-          echo "$VM_PASSWORD" | sudo -S pkill "Google Chrome" || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Google Chrome.app"
+          sudo -n pkill "Google Chrome" || true
+          sudo -n rm -rf "/Applications/Google Chrome.app"
           brew uninstall --cask google-chrome || true
           brew install --cask google-chrome
           echo "✅ Chrome installed"
@@ -55,8 +60,8 @@ jobs:
 
       - name: Clean and Install iTerm2
         run: |
-          echo "$VM_PASSWORD" | sudo -S pkill iTerm || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/iTerm.app"
+          sudo -n pkill iTerm || true
+          sudo -n rm -rf "/Applications/iTerm.app"
           brew uninstall --cask iterm2 || true
           brew install --cask iterm2
           echo "✅ iTerm2 installed"
@@ -66,8 +71,8 @@ jobs:
 
       - name: Clean and Install Postman
         run: |
-          echo "$VM_PASSWORD" | sudo -S pkill Postman || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Postman.app"
+          sudo -n pkill Postman || true
+          sudo -n rm -rf "/Applications/Postman.app"
           brew uninstall --cask postman || true
           brew install --cask postman
           echo "✅ Postman installed"
@@ -77,8 +82,8 @@ jobs:
 
       - name: Clean and Install Slack
         run: |
-          echo "$VM_PASSWORD" | sudo -S pkill Slack || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Slack.app"
+          sudo -n pkill Slack || true
+          sudo -n rm -rf "/Applications/Slack.app"
           brew uninstall --cask slack || true
           brew install --cask slack
           echo "✅ Slack installed"
@@ -89,44 +94,62 @@ jobs:
       - name: GUI Test – Take Screenshot
         run: |
           mkdir -p ~/orka-screenshots
-          echo "$VM_PASSWORD" | sudo -S screencapture -x ~/orka-screenshots/devtools.png
+          sudo -n screencapture -x ~/orka-screenshots/devtools.png
           echo "📸 Screenshot saved"
 
       - name: Show Screenshot File Info
         run: |
           ls -lh ~/orka-screenshots
 
+      - name: Display Installed Software Summary
+        run: |
+          echo "🎉 Installation Summary 🎉"
+          echo "----------------------------------"
+          echo "| Software            | Status    |"
+          echo "----------------------------------"
+          [ -d "/Applications/Docker.app" ] && echo "| Docker Desktop      | Installed |" || echo "| Docker Desktop      | Failed    |"
+          [ -d "/Applications/Visual Studio Code.app" ] && echo "| Visual Studio Code  | Installed |" || echo "| Visual Studio Code  | Failed    |"
+          [ -d "/Applications/Google Chrome.app" ] && echo "| Google Chrome       | Installed |" || echo "| Google Chrome       | Failed    |"
+          [ -d "/Applications/iTerm.app" ] && echo "| iTerm2              | Installed |" || echo "| iTerm2              | Failed    |"
+          [ -d "/Applications/Postman.app" ] && echo "| Postman             | Installed |" || echo "| Postman             | Failed    |"
+          [ -d "/Applications/Slack.app" ] && echo "| Slack               | Installed |" || echo "| Slack               | Failed    |"
+          echo "----------------------------------"
+          echo "✅ Installation summary displayed"
+
       - name: Cleanup Installed Software
         run: |
-          echo "$VM_PASSWORD" | sudo -S pkill Docker || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Docker.app"
+          sudo -n pkill Docker || true
+          sudo -n rm -rf "/Applications/Docker.app"
           brew uninstall --cask docker || true
           echo "🗑️ Docker uninstalled"
 
-          echo "$VM_PASSWORD" | sudo -S pkill "Visual Studio Code" || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Visual Studio Code.app"
+          sudo -n pkill "Visual Studio Code" || true
+          sudo -n rm -rf "/Applications/Visual Studio Code.app"
           brew uninstall --cask visual-studio-code || true
           echo "🗑️ VS Code uninstalled"
 
-          echo "$VM_PASSWORD" | sudo -S pkill "Google Chrome" || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Google Chrome.app"
+          sudo -n pkill "Google Chrome" || true
+          sudo -n rm -rf "/Applications/Google Chrome.app"
           brew uninstall --cask google-chrome || true
           echo "🗑️ Chrome uninstalled"
 
-          echo "$VM_PASSWORD" | sudo -S pkill iTerm || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/iTerm.app"
+          sudo -n pkill iTerm || true
+          sudo -n rm -rf "/Applications/iTerm.app"
           brew uninstall --cask iterm2 || true
           echo "🗑️ iTerm2 uninstalled"
 
-          echo "$VM_PASSWORD" | sudo -S pkill Postman || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Postman.app"
+          sudo -n pkill Postman || true
+          sudo -n rm -rf "/Applications/Postman.app"
           brew uninstall --cask postman || true
           echo "🗑️ Postman uninstalled"
 
-          echo "$VM_PASSWORD" | sudo -S pkill Slack || true
-          echo "$VM_PASSWORD" | sudo -S rm -rf "/Applications/Slack.app"
+          sudo -n pkill Slack || true
+          sudo -n rm -rf "/Applications/Slack.app"
           brew uninstall --cask slack || true
           echo "🗑️ Slack uninstalled"
 
-          echo "$VM_PASSWORD" | sudo -S rm -rf ~/orka-screenshots
+          sudo -n rm -rf ~/orka-screenshots
           echo "🗑️ Screenshots cleaned"
+
+          sudo -n rm -f /etc/sudoers.d/orka-user
+          echo "🗑️ Passwordless sudo configuration removed"
