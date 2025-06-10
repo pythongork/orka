@@ -1,0 +1,11 @@
+name: Orka Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-on-orka:
+    runs-on: [self-hosted, orka]
+    steps:
+      - name: Hello Orka
+        run: echo "🎉 Hello from the Orka ephemeral runner!"
