@@ -1,0 +1,37 @@
+name: Orka Dev Tools Showcase
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-vm:
+    runs-on: [self-hosted, orka]
+    steps:
+      - name: Install Xcode Command Line Tools
+        run: |
+          xcode-select --install || echo "Xcode tools already installed"
+
+      - name: Install Docker Desktop
+        run: |
+          brew install --cask docker
+          echo "✅ Docker installed"
+
+      - name: Install Visual Studio Code
+        run: |
+          brew install --cask visual-studio-code
+          echo "✅ VS Code installed"
+
+      - name: Open a Webpage in Safari
+        run: |
+          open -a Safari "https://www.apple.com"
+          echo "🌐 Safari launched Apple.com"
+
+      - name: GUI Test – Take Screenshot
+        run: |
+          mkdir -p ~/orka-screenshots
+          screencapture ~/orka-screenshots/safari.png
+          echo "📸 Screenshot saved to ~/orka-screenshots/safari.png"
+
+      - name: Show Screenshot File Info
+        run: |
+          ls -lh ~/orka-screenshots
