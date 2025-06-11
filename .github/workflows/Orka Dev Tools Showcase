@@ -1,7 +1,7 @@
 name: Orka Dev Tools Showcase
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: 
 
 jobs:
   setup-vm:
