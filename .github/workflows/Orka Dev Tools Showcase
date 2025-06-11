@@ -6,13 +6,12 @@ on:
 jobs:
   setup-vm:
     runs-on: [self-hosted, orka]
-    env:
-      VM_PASSWORD: admin
     steps:
       - name: Configure Passwordless Sudo
         run: |
-          echo "$VM_PASSWORD" | sudo -S sh -c 'echo "$(whoami) ALL=(ALL) NOPASSWD: /bin/rm, /usr/bin/pkill, /usr/sbin/screencapture" > /etc/sudoers.d/orka-user'
+          echo "$(whoami) ALL=(ALL) NOPASSWD: /bin/rm, /usr/bin/pkill, /usr/sbin/screencapture" | sudo tee /etc/sudoers.d/orka-user > /dev/null
           echo "✅ Passwordless sudo configured for required commands"
+        # Removed VM_PASSWORD to avoid hardcoding; assumes VM is preconfigured or uses secrets
 
       - name: Ensure Homebrew is Installed
         run: |
@@ -23,7 +22,7 @@ jobs:
             eval "$(/opt/homebrew/bin/brew shellenv)"
           fi
           brew update
-          echo "✅ Homebrew ready"
+          echo "✅ Homebrew ready (version: $(brew --version))"
 
       - name: Clean and Install Docker Desktop
         run: |
@@ -31,10 +30,15 @@ jobs:
           sudo -n rm -rf "/Applications/Docker.app"
           brew uninstall --cask docker || true
           brew install --cask docker
-          echo "✅ Docker installed"
+          echo "✅ Docker installed (version: $(docker --version 2>/dev/null || echo 'Not running'))"
           open -a Docker
           sleep 10
-          echo "✅ Docker launched"
+          if pgrep -x Docker >/dev/null; then
+            echo "✅ Docker launched successfully"
+          else
+            echo "❌ Docker failed to launch"
+            exit 1
+          fi
 
       - name: Clean and Install Visual Studio Code
         run: |
@@ -42,10 +46,15 @@ jobs:
           sudo -n rm -rf "/Applications/Visual Studio Code.app"
           brew uninstall --cask visual-studio-code || true
           brew install --cask visual-studio-code
-          echo "✅ VS Code installed"
+          echo "✅ VS Code installed (version: $(code --version | head -n1 2>/dev/null || echo 'Not running'))"
           open -a "Visual Studio Code" https://github.com
           sleep 5
-          echo "✅ VS Code launched with GitHub"
+          if pgrep -x "Code" >/dev/null; then
+            echo "✅ VS Code launched with GitHub"
+          else
+            echo "❌ VS Code failed to launch"
+            exit 1
+          fi
 
       - name: Clean and Install Google Chrome
         run: |
@@ -53,10 +62,15 @@ jobs:
           sudo -n rm -rf "/Applications/Google Chrome.app"
           brew uninstall --cask google-chrome || true
           brew install --cask google-chrome
-          echo "✅ Chrome installed"
+          echo "✅ Chrome installed (version: $(/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --version 2>/dev/null || echo 'Not running'))"
           open -a "Google Chrome" https://www.apple.com
           sleep 5
-          echo "✅ Chrome launched Apple.com"
+          if pgrep -x "Google Chrome" >/dev/null; then
+            echo "✅ Chrome launched Apple.com"
+          else
+            echo "❌ Chrome failed to launch"
+            exit 1
+          fi
 
       - name: Clean and Install iTerm2
         run: |
@@ -67,7 +81,12 @@ jobs:
           echo "✅ iTerm2 installed"
           open -a iTerm
           sleep 5
-          echo "✅ iTerm2 launched"
+          if pgrep -x iTerm2 >/dev/null; then
+            echo "✅ iTerm2 launched"
+          else
+            echo "❌ iTerm2 failed to launch"
+            exit 1
+          fi
 
       - name: Clean and Install Postman
         run: |
@@ -78,7 +97,12 @@ jobs:
           echo "✅ Postman installed"
           open -a Postman
           sleep 5
-          echo "✅ Postman launched"
+          if pgrep -x Postman >/dev/null; then
+            echo "✅ Postman launched"
+          else
+            echo "❌ Postman failed to launch"
+            exit 1
+          fi
 
       - name: Clean and Install Slack
         run: |
@@ -86,16 +110,29 @@ jobs:
           sudo -n rm -rf "/Applications/Slack.app"
           brew uninstall --cask slack || true
           brew install --cask slack
-          echo "✅ Slack installed"
+          echo "✅ Slack installed (version: $(/Applications/Slack.app/Contents/MacOS/Slack --version 2>/dev/null || echo 'Not running'))"
           open -a Slack
           sleep 5
-          echo "✅ Slack launched"
+          if pgrep -x Slack >/dev/null; then
+            echo "✅ Slack launched"
+          else
+            echo "❌ Slack failed to launch"
+            exit 1
+          fi
 
       - name: GUI Test – Take Screenshot
         run: |
           mkdir -p ~/orka-screenshots
           sudo -n screencapture -x ~/orka-screenshots/devtools.png
           echo "📸 Screenshot saved"
+
+      - name: Upload Screenshot Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: devtools-screenshot
+          path: ~/orka-screenshots/devtools.png
+          retention-days: 7
+        if: always()
 
       - name: Show Screenshot File Info
         run: |
@@ -117,39 +154,18 @@ jobs:
           echo "✅ Installation summary displayed"
 
       - name: Cleanup Installed Software
+        if: always()
         run: |
           sudo -n pkill Docker || true
-          sudo -n rm -rf "/Applications/Docker.app"
-          brew uninstall --cask docker || true
-          echo "🗑️ Docker uninstalled"
-
-          sudo -n pkill "Visual Studio Code" || true
-          sudo -n rm -rf "/Applications/Visual Studio Code.app"
-          brew uninstall --cask visual-studio-code || true
-          echo "🗑️ VS Code uninstalled"
-
-          sudo -n pkill "Google Chrome" || true
-          sudo -n rm -rf "/Applications/Google Chrome.app"
-          brew uninstall --cask google-chrome || true
-          echo "🗑️ Chrome uninstalled"
-
-          sudo -n pkill iTerm || true
-          sudo -n rm -rf "/Applications/iTerm.app"
-          brew uninstall --cask iterm2 || true
-          echo "🗑️ iTerm2 uninstalled"
-
-          sudo -n pkill Postman || true
-          sudo -n rm -rf "/Applications/Postman.app"
-          brew uninstall --cask postman || true
-          echo "🗑️ Postman uninstalled"
-
-          sudo -n pkill Slack || true
-          sudo -n rm -rf "/Applications/Slack.app"
-          brew uninstall --cask slack || true
-          echo "🗑️ Slack uninstalled"
-
+          [ -d "/Applications/Docker.app" ] && { sudo -n rm -rf "/Applications/Docker.app"; brew uninstall --cask docker || true; echo "🗑️ Docker uninstalled"; }
+          [ -d "/Applications/Visual Studio Code.app" ] && { sudo -n pkill "Visual Studio Code" || true; sudo -n rm -rf "/Applications/Visual Studio Code.app"; brew uninstall --cask visual-studio-code || true; echo "🗑️ VS Code uninstalled"; }
+          [ -d "/Applications/Google Chrome.app" ] && { sudo -n pkill "Google Chrome" || true; sudo -n rm -rf "/Applications/Google Chrome.app"; brew uninstall --cask google-chrome || true; echo "🗑️ Chrome uninstalled"; }
+          [ -d "/Applications/iTerm.app" ] && { sudo -n pkill iTerm || true; sudo -n rm -rf "/Applications/iTerm.app"; brew uninstall --cask iterm2 || true; echo "🗑️ iTerm2 uninstalled"; }
+          [ -d "/Applications/Postman.app" ] && { sudo -n pkill Postman || true; sudo -n rm -rf "/Applications/Postman.app"; brew uninstall --cask postman || true; echo "🗑️ Postman uninstalled"; }
+          [ -d "/Applications/Slack.app" ] && { sudo -n pkill Slack || true; sudo -n rm -rf "/Applications/Slack.app"; brew uninstall --cask slack || true; echo "🗑️ Slack uninstalled"; }
           sudo -n rm -rf ~/orka-screenshots
           echo "🗑️ Screenshots cleaned"
-
+          brew cleanup
+          echo "🗑️ Homebrew cache cleaned"
           sudo -n rm -f /etc/sudoers.d/orka-user
           echo "🗑️ Passwordless sudo configuration removed"
