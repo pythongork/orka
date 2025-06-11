@@ -1,0 +1,38 @@
+name: Orka Demo Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  demo:
+    runs-on: macstadium-orka
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Environment
+        run: |
+          echo "Setting up environment..."
+          brew update
+          brew install wget curl jq
+
+      - name: Install Additional Software
+        run: |
+          echo "Installing demo software..."
+          brew install node
+          node -v
+          brew install python
+          python3 --version
+
+      - name: Run Integration Tests
+        run: |
+          echo "Running integration tests..."
+          python3 -c "print('Hello from Orka runner!')"
+
+      - name: Cleanup
+        run: |
+          echo "Cleaning up..."
+          brew uninstall node python
