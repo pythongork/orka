@@ -1,0 +1,29 @@
+name: Orka GitHub Runner Demo
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        
+      - name: Set Up macOS Environment
+        run: |
+          brew install swiftlint
+          xcodebuild -version
+        
+      - name: Build Application
+        run: xcodebuild -scheme MyApp -destination 'platform=iOS Simulator,name=iPhone 14'
+      
+      - name: Run Unit Tests
+        run: |
+          xcodebuild test -scheme MyApp -destination 'platform=iOS Simulator,name=iPhone 14'
+        
+      - name: Package Build
+        run: zip -r MyApp.zip MyApp.app
+        
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: MyApp-Build
+          path: MyApp.zip
