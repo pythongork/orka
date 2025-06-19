@@ -1,0 +1,51 @@
+name: iOS CI on MacStadium Orka Runner
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, macOS]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install CocoaPods dependencies
+        run: |
+          if [ -f "Podfile" ]; then
+            pod install
+          else
+            echo "No Podfile found, skipping CocoaPods installation"
+          fi
+
+      - name: Build Xcode project
+        run: |
+          xcodebuild clean build \
+            -workspace YourProject.xcworkspace \
+            -scheme YourScheme \
+            -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -workspace YourProject.xcworkspace \
+            -scheme YourScheme \
+            -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Archive build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/*
