@@ -14,24 +14,42 @@ jobs:
             NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
             eval "$(/opt/homebrew/bin/brew shellenv)"
+          else
+            echo "Homebrew already installed, updating..."
+            brew update
+          fi
+      - name: Check and Install Xcode if Needed
+        run: |
+          if ! xcode-select -p &>/dev/null; then
+            echo "Xcode command line tools not found, installing..."
+            sudo xcode-select --install || true
+          else
+            echo "Xcode command line tools already installed at $(xcode-select -p)"
+          fi
+          if [ ! -d "/Applications/Xcode.app" ]; then
+            echo "Xcode not found, installing via brew..."
+            brew install --cask xcode || true
+          else
+            echo "Xcode found at /Applications/Xcode.app"
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           fi
       - name: Clean and Reinstall Docker Desktop
         run: |
-          pkill Docker || true
+          pkill -f "Docker" || true
           rm -rf "/Applications/Docker.app"
           brew uninstall --cask docker || true
           brew install --cask docker
           echo "✅ Docker installed"
       - name: Clean and Reinstall Visual Studio Code
         run: |
-          pkill "Visual Studio Code" || true
+          pkill -f "Visual Studio Code" || true
           rm -rf "/Applications/Visual Studio Code.app"
           brew uninstall --cask visual-studio-code || true
           brew install --cask visual-studio-code
           echo "✅ VS Code installed"
       - name: Clean and Reinstall Google Chrome
         run: |
-          pkill "Google Chrome" || true
+          pkill -f "Google Chrome" || true
           rm -rf "/Applications/Google Chrome.app"
           brew uninstall --cask google-chrome || true
           brew install --cask google-chrome
