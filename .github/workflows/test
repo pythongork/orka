@@ -18,7 +18,7 @@ jobs:
             echo "Homebrew already installed, updating..."
             brew update
           fi
-      - name: Check and Install Xcode if Needed
+      - name: Check and Install Xcode Command Line Tools
         run: |
           if ! xcode-select -p &>/dev/null; then
             echo "Xcode command line tools not found, installing..."
@@ -26,13 +26,26 @@ jobs:
           else
             echo "Xcode command line tools already installed at $(xcode-select -p)"
           fi
-          if [ ! -d "/Applications/Xcode.app" ]; then
-            echo "Xcode not found, installing via brew..."
+      - name: Verify and Set Xcode Path
+        run: |
+          XCODE_PATH="/Applications/Xcode.app"
+          if [ -d "/Applications/Xcode_16.app" ]; then
+            XCODE_PATH="/Applications/Xcode_16.app"
+          elif [ ! -d "$XCODE_PATH" ]; then
+            echo "No Xcode installation found at /Applications/Xcode.app or /Applications/Xcode_16.app"
+            echo "Attempting to install Xcode via Homebrew..."
             brew install --cask xcode || true
-          else
-            echo "Xcode found at /Applications/Xcode.app"
-            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           fi
+          if [ -d "$XCODE_PATH" ]; then
+            echo "Setting Xcode path to $XCODE_PATH/Contents/Developer"
+            sudo xcode-select -s "$XCODE_PATH/Contents/Developer" || true
+          else
+            echo "Xcode not found, proceeding without setting xcode-select"
+          fi
+          echo "Current xcode-select path: $(xcode-select -p 2>/dev/null || echo 'Not set')"
+      - name: List Applications Directory for Debugging
+        run: |
+          ls -l /Applications/ | grep Xcode
       - name: Clean and Reinstall Docker Desktop
         run: |
           pkill -f "Docker" || true
