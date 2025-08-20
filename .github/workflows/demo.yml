@@ -1,8 +1,6 @@
 name: Orka Ephemeral Runner Demo
-
 on:
   workflow_dispatch:
-
 jobs:
   demo-job:
     runs-on: [self-hosted, orka-runner]
