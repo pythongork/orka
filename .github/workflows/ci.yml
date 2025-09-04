@@ -1,4 +1,4 @@
-ame: My test CI
+name: My test CI
 
 on:
   push:
