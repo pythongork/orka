@@ -1,0 +1,40 @@
+name: Demo Static Runner Workflow for macOS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, macOS]  # Specifies the self-hosted macOS runner
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'  # Specify Node.js version compatible with macOS
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Run tests
+      - name: Run tests
+        run: npm test
+
+      # Step 5: Verify macOS environment
+      - name: Print environment details
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "macOS version: $(sw_vers -productVersion)"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
