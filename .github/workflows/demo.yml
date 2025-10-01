@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   demo-job:
-    runs-on: my-orka-runner
+    runs-on: my-github-runner
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
