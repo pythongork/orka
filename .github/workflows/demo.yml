@@ -10,5 +10,5 @@ jobs:
         uses: actions/checkout@v4
       - name: Run a command
         run: |
-          echo "Hello from Orka ephemeral runner!"
+          echo "Hello world from Orka ephemeral runner!"
           uname -a
