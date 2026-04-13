@@ -8,34 +8,25 @@ on:
     branches:
       - main
 
-# ─── Tune these to scale up/down ──────────────────────────────────────────────
+# ─── Shared config ─────────────────────────────────────────────────────────────
 env:
-  ORKA_BASE_IMAGE: gha_bigsur_v3.img   # Replace with your Orka VM image
+  ORKA_BASE_IMAGE: gha_bigsur_v3.img
   VCPU_COUNT: 6
   CORE_COUNT: 6
 
 jobs:
 
   # ════════════════════════════════════════════════════════════════════════════
-  # JOB 1 — Spin up all Orka runners in parallel
-  # Runs on a persistent Orka controller VM that has network access to the
-  # Orka cluster. orka-actions-up connects to the Orka API over this path.
+  # Each job is fully self-contained: spin up → work → tear down.
+  # All three run in parallel on the controller VM (orka-ephemeral-runner).
+  # Duplicate runner-1 / runner-2 / runner-3 blocks to add more runners.
   # ════════════════════════════════════════════════════════════════════════════
-  provision:
-    name: Provision runner ${{ matrix.runner_index }}
-    runs-on: orka-ephemeral-runner   # Persistent Orka controller VM
-    strategy:
-      fail-fast: false              # Keep other runners alive if one fails
-      matrix:
-        runner_index: [1, 2, 3]     # ← Add/remove indices to change runner count
 
-    outputs:
-      vm-name-1: ${{ steps.export-vm-name.outputs.vm_name_1 }}
-      vm-name-2: ${{ steps.export-vm-name.outputs.vm_name_2 }}
-      vm-name-3: ${{ steps.export-vm-name.outputs.vm_name_3 }}
-
+  runner-1:
+    name: Ephemeral Runner 1
+    runs-on: orka-ephemeral-runner
     steps:
-      - name: Spin up Orka runner [${{ matrix.runner_index }}]
+      - name: Spin up Orka VM
         id: orka-up
         uses: jeff-vincent/orka-actions-up@v1.1.1
         with:
@@ -50,31 +41,9 @@ jobs:
           vcpuCount:     ${{ env.VCPU_COUNT }}
           coreCount:     ${{ env.CORE_COUNT }}
 
-      - name: Export vm-name for runner ${{ matrix.runner_index }}
-        id: export-vm-name
-        run: |
-          echo "vm_name_${{ matrix.runner_index }}=${{ steps.orka-up.outputs.vm-name }}" \
-            >> "$GITHUB_OUTPUT"
-
-  # ════════════════════════════════════════════════════════════════════════════
-  # JOB 2 — Run CI workload on every provisioned ephemeral Orka runner
-  # These are the freshly spun-up macOS VMs registered by the provision job.
-  # ════════════════════════════════════════════════════════════════════════════
-  build:
-    name: Build on runner ${{ matrix.runner_index }}
-    needs: provision
-    runs-on: orka-ephemeral-runner  # Freshly provisioned Orka macOS VM
-    strategy:
-      fail-fast: false
-      matrix:
-        runner_index: [1, 2, 3]     # ← Keep in sync with the provision matrix
-
-    steps:
-      # ── 2.1  Checkout ───────────────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── 2.2  Homebrew ───────────────────────────────────────────────────────
       - name: Install Homebrew
         run: |
           if ! command -v brew &> /dev/null; then
@@ -83,60 +52,32 @@ jobs:
             echo "Homebrew already installed — skipping"
           fi
 
-      # ── 2.3  Google Chrome ──────────────────────────────────────────────────
       - name: Install Google Chrome
-        run: |
-          brew install --cask google-chrome \
-            || echo "Chrome installation failed or already present"
+        run: brew install --cask google-chrome || echo "Already installed"
 
-      # ── 2.4  Verify Chrome ──────────────────────────────────────────────────
       - name: Verify Chrome installation
         run: |
           CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
           if [ -f "$CHROME" ]; then
-            echo "✅  Google Chrome is installed"
+            echo "✅ Google Chrome is installed"
             "$CHROME" --version
           else
-            echo "❌  Google Chrome not found"
+            echo "❌ Google Chrome not found"
             exit 1
           fi
 
-      # ── 2.5  Hello World ────────────────────────────────────────────────────
       - name: Print Hello World
-        run: echo "Hello from Orka runner ${{ matrix.runner_index }}!"
+        run: echo "Hello from Orka Runner 1!"
 
-      # ── 2.6  Environment details ────────────────────────────────────────────
       - name: Print environment details
         run: |
-          echo "Runner index : ${{ matrix.runner_index }}"
-          echo "Runner OS    : $RUNNER_OS"
+          echo "Runner       : 1"
           echo "macOS version: $(sw_vers -productVersion)"
           echo "CPU cores    : $(sysctl -n hw.logicalcpu)"
           echo "Memory (GB)  : $(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))"
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # JOB 3 — Tear down all runners (always runs, even on failure)
-  # Must run on the same persistent Orka controller VM as provision — it needs
-  # the same network path to the Orka API to destroy the VMs cleanly.
-  # ════════════════════════════════════════════════════════════════════════════
-  teardown:
-    name: Teardown runner ${{ matrix.runner_index }}
-    needs: [provision, build]
-    if: always()                    # Guarantee cleanup regardless of build result
-    runs-on: orka-ephemeral-runner   # Same persistent Orka controller VM
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner_index: 1
-            vm_name_key: vm-name-1
-          - runner_index: 2
-            vm_name_key: vm-name-2
-          - runner_index: 3
-            vm_name_key: vm-name-3
-
-    steps:
-      - name: Tear down Orka runner ${{ matrix.runner_index }}
+      - name: Tear down Orka VM
+        if: always()
         uses: jeff-vincent/orka-actions-down@v1.1.0
         with:
           orkaUser:      ${{ secrets.ORKA_USER }}
@@ -146,4 +87,142 @@ jobs:
           vpnPassword:   ${{ secrets.VPN_PASSWORD }}
           vpnAddress:    ${{ secrets.VPN_ADDRESS }}
           vpnServerCert: ${{ secrets.VPN_SERVER_CERT }}
-          vmName:        ${{ needs.provision.outputs[matrix.vm_name_key] }}
+          vmName:        ${{ steps.orka-up.outputs.vm-name }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+
+  runner-2:
+    name: Ephemeral Runner 2
+    runs-on: orka-ephemeral-runner
+    steps:
+      - name: Spin up Orka VM
+        id: orka-up
+        uses: jeff-vincent/orka-actions-up@v1.1.1
+        with:
+          orkaUser:      ${{ secrets.ORKA_USER }}
+          orkaPass:      ${{ secrets.ORKA_PASS }}
+          orkaBaseImage: ${{ env.ORKA_BASE_IMAGE }}
+          githubPat:     ${{ secrets.GH_PAT }}
+          vpnUser:       ${{ secrets.VPN_USER }}
+          vpnPassword:   ${{ secrets.VPN_PASSWORD }}
+          vpnAddress:    ${{ secrets.VPN_ADDRESS }}
+          vpnServerCert: ${{ secrets.VPN_SERVER_CERT }}
+          vcpuCount:     ${{ env.VCPU_COUNT }}
+          coreCount:     ${{ env.CORE_COUNT }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Homebrew
+        run: |
+          if ! command -v brew &> /dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            echo "Homebrew already installed — skipping"
+          fi
+
+      - name: Install Google Chrome
+        run: brew install --cask google-chrome || echo "Already installed"
+
+      - name: Verify Chrome installation
+        run: |
+          CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          if [ -f "$CHROME" ]; then
+            echo "✅ Google Chrome is installed"
+            "$CHROME" --version
+          else
+            echo "❌ Google Chrome not found"
+            exit 1
+          fi
+
+      - name: Print Hello World
+        run: echo "Hello from Orka Runner 2!"
+
+      - name: Print environment details
+        run: |
+          echo "Runner       : 2"
+          echo "macOS version: $(sw_vers -productVersion)"
+          echo "CPU cores    : $(sysctl -n hw.logicalcpu)"
+          echo "Memory (GB)  : $(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))"
+
+      - name: Tear down Orka VM
+        if: always()
+        uses: jeff-vincent/orka-actions-down@v1.1.0
+        with:
+          orkaUser:      ${{ secrets.ORKA_USER }}
+          orkaPass:      ${{ secrets.ORKA_PASS }}
+          githubPat:     ${{ secrets.GH_PAT }}
+          vpnUser:       ${{ secrets.VPN_USER }}
+          vpnPassword:   ${{ secrets.VPN_PASSWORD }}
+          vpnAddress:    ${{ secrets.VPN_ADDRESS }}
+          vpnServerCert: ${{ secrets.VPN_SERVER_CERT }}
+          vmName:        ${{ steps.orka-up.outputs.vm-name }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+
+  runner-3:
+    name: Ephemeral Runner 3
+    runs-on: orka-ephemeral-runner
+    steps:
+      - name: Spin up Orka VM
+        id: orka-up
+        uses: jeff-vincent/orka-actions-up@v1.1.1
+        with:
+          orkaUser:      ${{ secrets.ORKA_USER }}
+          orkaPass:      ${{ secrets.ORKA_PASS }}
+          orkaBaseImage: ${{ env.ORKA_BASE_IMAGE }}
+          githubPat:     ${{ secrets.GH_PAT }}
+          vpnUser:       ${{ secrets.VPN_USER }}
+          vpnPassword:   ${{ secrets.VPN_PASSWORD }}
+          vpnAddress:    ${{ secrets.VPN_ADDRESS }}
+          vpnServerCert: ${{ secrets.VPN_SERVER_CERT }}
+          vcpuCount:     ${{ env.VCPU_COUNT }}
+          coreCount:     ${{ env.CORE_COUNT }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Homebrew
+        run: |
+          if ! command -v brew &> /dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            echo "Homebrew already installed — skipping"
+          fi
+
+      - name: Install Google Chrome
+        run: brew install --cask google-chrome || echo "Already installed"
+
+      - name: Verify Chrome installation
+        run: |
+          CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          if [ -f "$CHROME" ]; then
+            echo "✅ Google Chrome is installed"
+            "$CHROME" --version
+          else
+            echo "❌ Google Chrome not found"
+            exit 1
+          fi
+
+      - name: Print Hello World
+        run: echo "Hello from Orka Runner 3!"
+
+      - name: Print environment details
+        run: |
+          echo "Runner       : 3"
+          echo "macOS version: $(sw_vers -productVersion)"
+          echo "CPU cores    : $(sysctl -n hw.logicalcpu)"
+          echo "Memory (GB)  : $(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))"
+
+      - name: Tear down Orka VM
+        if: always()
+        uses: jeff-vincent/orka-actions-down@v1.1.0
+        with:
+          orkaUser:      ${{ secrets.ORKA_USER }}
+          orkaPass:      ${{ secrets.ORKA_PASS }}
+          githubPat:     ${{ secrets.GH_PAT }}
+          vpnUser:       ${{ secrets.VPN_USER }}
+          vpnPassword:   ${{ secrets.VPN_PASSWORD }}
+          vpnAddress:    ${{ secrets.VPN_ADDRESS }}
+          vpnServerCert: ${{ secrets.VPN_SERVER_CERT }}
+          vmName:        ${{ steps.orka-up.outputs.vm-name }}
