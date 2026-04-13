@@ -23,7 +23,7 @@ jobs:
   # ════════════════════════════════════════════════════════════════════════════
   provision:
     name: Provision runner ${{ matrix.runner_index }}
-    runs-on: [self-hosted, orka, macOS]   # Persistent Orka controller VM
+    runs-on: orka-ephemeral-runner   # Persistent Orka controller VM
     strategy:
       fail-fast: false              # Keep other runners alive if one fails
       matrix:
@@ -123,7 +123,7 @@ jobs:
     name: Teardown runner ${{ matrix.runner_index }}
     needs: [provision, build]
     if: always()                    # Guarantee cleanup regardless of build result
-    runs-on: [self-hosted, orka, macOS]   # Same persistent Orka controller VM
+    runs-on: orka-ephemeral-runner   # Same persistent Orka controller VM
     strategy:
       fail-fast: false
       matrix:
