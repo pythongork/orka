@@ -11,7 +11,7 @@ on:
 
 jobs:
   setup-and-run:
-    runs-on: ubuntu-latest  # Initial job runs on Ubuntu to spin up Orka VM
+    runs-on: orka-ephemeral-runner
 
     steps:
       # Step 1: Spin up Orka ephemeral runner
@@ -32,7 +32,7 @@ jobs:
 
       # Step 2: Run job on Orka ephemeral runner
       - name: Run on Orka macOS runner
-        runs-on: [self-hosted, macOS, orka-macos]  # Labels must match Orka runner
+        runs-on: orka-ephemeral-runner  # Labels must match Orka runner
         steps:
           # Step 2.1: Checkout code
           - name: Checkout code
